@@ -11,7 +11,7 @@
     "cloudkeys": "./dist/index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "stevenc@castroai.com",
   "license": "ISC",
   "dependencies": {
     "commander": "^11.0.0",
