@@ -1,6 +1,6 @@
 {
   "name": "cloudkeys",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Cloudkeys CLI Tool",
   "main": "dist/index.js",
   "scripts": {
