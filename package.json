@@ -16,12 +16,9 @@
   "dependencies": {
     "@azure/identity": "^3.3.0",
     "@azure/keyvault-keys": "^4.7.2",
-    "@azure/keyvault-secrets": "^4.7.0",
-    "commander": "^11.0.0",
-    "figlet": "^1.6.0"
+    "@azure/keyvault-secrets": "^4.7.0"
   },
   "devDependencies": {
-    "@types/figlet": "^1.5.6",
     "@types/node": "^20.4.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.1.6"
