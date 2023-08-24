@@ -22,13 +22,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const identity_1 = require("@azure/identity");
 const keyvault_secrets_1 = require("@azure/keyvault-secrets");
-// import keyVaultConfig from "../cloudkeys-config.json";
 const fs_1 = require("fs");
 const figlet_1 = __importDefault(require("figlet"));
 const commander_1 = require("commander");
-const keyVaultConfig = {
-    keyVaultUrl: "https://keyvault-castroai.vault.azure.net/",
-};
+const data = fs_2.default.readFileSync("cloudkeys-config.json", "utf8");
+const keyVaultConfig = JSON.parse(data);
 // A Util to check if json file contains all the keys
 const hasAllKeys = (obj, keys) => {
     for (const key of keys) {
@@ -38,6 +36,7 @@ const hasAllKeys = (obj, keys) => {
     }
     return true;
 };
+const fs_2 = __importDefault(require("fs"));
 console.log(figlet_1.default.textSync("CLOUD KEYS"));
 const program = new commander_1.Command();
 program
@@ -48,7 +47,6 @@ program
 function GenerateEnvFile() {
     var _a, e_1, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
-        // List of keys to check for in the json file
         const keysToCheck = ["keyVaultUrl"];
         const hasAll = hasAllKeys(keyVaultConfig, keysToCheck);
         if (hasAll) {

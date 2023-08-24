@@ -1,14 +1,13 @@
 #! /usr/bin/env node
 import { DefaultAzureCredential } from "@azure/identity";
 import { SecretClient } from "@azure/keyvault-secrets";
-// import keyVaultConfig from "../cloudkeys-config.json";
-import { writeFileSync } from "fs";
+import { writeFileSync, readFileSync } from "fs";
 import figlet from "figlet";
 import { Command } from "commander";
-let keyVaultConfig = {
-  keyVaultUrl: "https://keyvault-castroai.vault.azure.net/",
-};
+console.log(figlet.textSync("CLOUD KEYS"));
 
+const data = readFileSync("cloudkeys-config.json", "utf8");
+const keyVaultConfig = JSON.parse(data);
 // A Util to check if json file contains all the keys
 const hasAllKeys = (obj: Record<string, any>, keys: string[]): boolean => {
   for (const key of keys) {
@@ -19,8 +18,6 @@ const hasAllKeys = (obj: Record<string, any>, keys: string[]): boolean => {
   return true;
 };
 
-import fs from "fs";
-console.log(figlet.textSync("CLOUD KEYS"));
 const program = new Command();
 program
   .version("1.0.0")
@@ -29,8 +26,6 @@ program
   .parse(process.argv);
 
 async function GenerateEnvFile() {
-  // List of keys to check for in the json file
-
   const keysToCheck = ["keyVaultUrl"];
   const hasAll = hasAllKeys(keyVaultConfig, keysToCheck);
   if (hasAll) {
