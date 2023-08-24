@@ -2,12 +2,12 @@
 
 import { DefaultAzureCredential } from "@azure/identity";
 import { SecretClient } from "@azure/keyvault-secrets";
-import { writeFileSync, readFileSync } from "fs";
+import * as fs from "fs";
 import figlet from "figlet";
 import { Command } from "commander";
 console.log(figlet.textSync("CLOUD KEYS"));
 
-const data = readFileSync("cloudkeys-config.json", "utf8");
+const data = fs.readFileSync("cloudkeys-config.json", "utf8");
 const keyVaultConfig = JSON.parse(data);
 // A Util to check if json file contains all the keys
 const hasAllKeys = (obj: Record<string, any>, keys: string[]): boolean => {
@@ -40,7 +40,7 @@ async function GenerateEnvFile() {
       const secretValue = secret.value;
       envData.push(`${secretName}=${secretValue}`);
     }
-    writeFileSync(".env", envData.join("\n"));
+    fs.writeFileSync(".env", envData.join("\n"));
     console.log("Secrets exported to .env file.");
   } else {
     throw new Error("Json not complete");
