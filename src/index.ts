@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 
+import fs from "fs";
 import { DefaultAzureCredential } from "@azure/identity";
 import { SecretClient } from "@azure/keyvault-secrets";
-import * as fs from "fs";
 import figlet from "figlet";
 import { Command } from "commander";
 console.log(figlet.textSync("CLOUD KEYS"));
 
 const data = fs.readFileSync("cloudkeys-config.json", "utf8");
+
 const keyVaultConfig = JSON.parse(data);
 // A Util to check if json file contains all the keys
 const hasAllKeys = (obj: Record<string, any>, keys: string[]): boolean => {

@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -20,12 +20,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const fs_1 = __importDefault(require("fs"));
 const identity_1 = require("@azure/identity");
 const keyvault_secrets_1 = require("@azure/keyvault-secrets");
-const fs_1 = require("fs");
 const figlet_1 = __importDefault(require("figlet"));
 const commander_1 = require("commander");
-const data = fs_2.default.readFileSync("cloudkeys-config.json", "utf8");
+console.log(figlet_1.default.textSync("CLOUD KEYS"));
+const data = fs_1.default.readFileSync("cloudkeys-config.json", "utf8");
 const keyVaultConfig = JSON.parse(data);
 // A Util to check if json file contains all the keys
 const hasAllKeys = (obj, keys) => {
@@ -36,8 +37,6 @@ const hasAllKeys = (obj, keys) => {
     }
     return true;
 };
-const fs_2 = __importDefault(require("fs"));
-console.log(figlet_1.default.textSync("CLOUD KEYS"));
 const program = new commander_1.Command();
 program
     .version("1.0.0")
@@ -72,7 +71,7 @@ function GenerateEnvFile() {
                 }
                 finally { if (e_1) throw e_1.error; }
             }
-            (0, fs_1.writeFileSync)(".env", envData.join("\n"));
+            fs_1.default.writeFileSync(".env", envData.join("\n"));
             console.log("Secrets exported to .env file.");
         }
         else {
