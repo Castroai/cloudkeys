@@ -41,3 +41,15 @@ AZ Login
   "keyVaultUrl": "https://KEYVAULTNAME.vault.azure.net/"
 }
 ```
+
+3. Update your package json
+
+```json
+
+"scripts":{
+   "generate": "cloudkeys -g"
+}
+
+```
+
+The command `-g` will generate the your .env file with your keys and secrets from your azure keyvault.
