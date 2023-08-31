@@ -18,24 +18,38 @@ const figlet_1 = __importDefault(require("figlet"));
 const commander_1 = require("commander");
 const utils_1 = require("./utils");
 console.log(figlet_1.default.textSync("CLOUD KEYS CLI"));
-const data = fs_1.default.readFileSync("cloudkeys-config.json", "utf8");
-const keyVaultConfig = JSON.parse(data);
-const service = new utils_1.CloudKeysService(keyVaultConfig);
+const service = new utils_1.CloudKeysService();
 const program = new commander_1.Command();
 program
     .version("1.0.0")
     .description("A CLI to download env variables")
-    .option("-g, --generate", "Generate .env file")
+    .option("-g, --generate <cloud_provider>", "Generate .env file")
+    .option("-i, --init", "Create cloudkeys-config.json file")
     .parse(process.argv);
-function GenerateEnvFile() {
+function GenerateEnvFile(cloud_provider) {
     return __awaiter(this, void 0, void 0, function* () {
-        const isValid = service.validateConfig();
+        const data = fs_1.default.readFileSync("cloudkeys-config.json", "utf8");
+        const keyVaultConfig = JSON.parse(data);
+        const isValid = service.validateConfig(keyVaultConfig);
         if (isValid) {
-            yield service.generateEnv();
+            switch (cloud_provider) {
+                case "azure":
+                    yield service.generateAzureKeyvaultEnviormentVariables();
+                    return;
+                case "aws":
+                    yield service.generateAwsSecretsManagerEnviormentVariables();
+                    return;
+                default:
+                    break;
+            }
         }
     });
 }
 const options = program.opts();
+const cloud_provider = options.generate;
 if (options.generate) {
-    GenerateEnvFile();
+    GenerateEnvFile(cloud_provider);
+}
+else if (options.init) {
+    service.createConfigFile();
 }

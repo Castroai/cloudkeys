@@ -15,6 +15,7 @@
   "author": "stevenc@castroai.com",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.398.0",
     "@azure/identity": "^3.3.0",
     "@azure/keyvault-keys": "^4.7.2",
     "@azure/keyvault-secrets": "^4.7.0",

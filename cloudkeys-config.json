@@ -1,0 +1,8 @@
+{
+  "currentEnvPath": "./.env",
+  "newEnvPath": "./env",
+  "createBackup": true,
+  "merge": true,
+  "azure": { "keyVaultUrl": "https://keyvault-castroai.vault.azure.net/" },
+  "aws": { "region": "REGION" }
+}

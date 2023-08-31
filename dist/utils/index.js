@@ -21,11 +21,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CloudKeysService = void 0;
 const identity_1 = require("@azure/identity");
+const client_secrets_manager_1 = require("@aws-sdk/client-secrets-manager");
 const keyvault_secrets_1 = require("@azure/keyvault-secrets");
 const fs_1 = __importDefault(require("fs"));
 const configMap = {
-    keyVaultUrl: {
-        type: "string",
+    azure: {
+        type: "object",
+    },
+    aws: {
+        type: "object",
     },
     currentEnvPath: {
         type: "string",
@@ -41,33 +45,52 @@ const configMap = {
     },
 };
 class CloudKeysService {
-    constructor(jsonConfig) {
+    constructor() {
         this.configMap = configMap;
-        this.jsonConfig = jsonConfig;
+        this.createConfigFile = () => {
+            const file = {
+                currentEnvPath: "./.env",
+                newEnvPath: "./env",
+                createBackup: true,
+                merge: true,
+                azure: {
+                    keyVaultUrl: "https://KEYVAULT.vault.azure.net/",
+                },
+                aws: {
+                    region: "REGION",
+                },
+            };
+            fs_1.default.appendFile("./cloudkeys-config.json", JSON.stringify(file), (err) => {
+                if (err)
+                    throw err;
+                console.log("Saved!");
+            });
+        };
     }
-    validateConfig() {
+    validateConfig(jsonConfig) {
+        this.jsonConfig = jsonConfig;
         for (const key in this.configMap) {
             if (this.configMap.hasOwnProperty(key)) {
                 const expectedType = this.configMap[key].type;
                 const actualValue = this.jsonConfig[key];
                 if (typeof actualValue !== expectedType) {
-                    console.error(`Validation failed for key: ${key}. Expected type: ${expectedType}, Actual value: ${actualValue}`);
+                    console.error(`Validation failed for key: ${key}. Expected type: ${expectedType}, Actual value: ${JSON.stringify(actualValue)} of type ${typeof actualValue}`);
                     return false;
                 }
             }
         }
         return true;
     }
-    generateEnv() {
+    generateAzureKeyvaultEnviormentVariables() {
         var _a, e_1, _b, _c;
         return __awaiter(this, void 0, void 0, function* () {
             const envData = [];
-            const { keyVaultUrl, currentEnvPath, newEnvPath, createBackup, merge } = this.jsonConfig;
+            const { azure, currentEnvPath, newEnvPath, createBackup, merge } = this.jsonConfig;
             if (createBackup) {
                 this.createBackup(currentEnvPath);
             }
             const credential = new identity_1.DefaultAzureCredential();
-            const client = new keyvault_secrets_1.SecretClient(keyVaultUrl, credential);
+            const client = new keyvault_secrets_1.SecretClient(azure.keyVaultUrl, credential);
             try {
                 for (var _d = true, _e = __asyncValues(client.listPropertiesOfSecrets()), _f; _f = yield _e.next(), _a = _f.done, !_a; _d = true) {
                     _c = _f.value;
@@ -86,6 +109,66 @@ class CloudKeysService {
                 }
                 finally { if (e_1) throw e_1.error; }
             }
+            if (merge) {
+                const current = this.parseEnvFile(currentEnvPath);
+                const incoming = envData.map((data) => {
+                    const [key, value] = data.split("=");
+                    if (key && value) {
+                        const envObject = { [key]: value };
+                        return envObject;
+                    }
+                });
+                const newMergedEnv = this.mergeEnvArrays(current, incoming).map((value) => {
+                    return `${Object.keys(value)[0]}=${Object.values(value)[0]}`;
+                });
+                fs_1.default.writeFileSync(newEnvPath, newMergedEnv.join("\n"));
+                console.log(`Secrets exported to ${newEnvPath} file.`);
+                return;
+            }
+            fs_1.default.writeFileSync(newEnvPath, envData.join("\n"));
+            console.log(`Secrets exported to ${newEnvPath} file.`);
+        });
+    }
+    generateAwsSecretsManagerEnviormentVariables() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const envData = [];
+            const { aws, currentEnvPath, newEnvPath, createBackup, merge } = this.jsonConfig;
+            if (createBackup) {
+                this.createBackup(currentEnvPath);
+            }
+            const client = new client_secrets_manager_1.SecretsManagerClient({ region: aws.region });
+            const input = {
+            // // ListSecretsRequest
+            // IncludePlannedDeletion: true || false,
+            // MaxResults: Number("int"),
+            // NextToken: "STRING_VALUE",
+            // Filters: [
+            //   // FiltersListType
+            //   {
+            //     // Filter
+            //     Key:
+            //       "description" ||
+            //       "name" ||
+            //       "tag-key" ||
+            //       "tag-value" ||
+            //       "primary-region" ||
+            //       "owning-service" ||
+            //       "all",
+            //     Values: [
+            //       // FilterValuesStringList
+            //       "STRING_VALUE",
+            //     ],
+            //   },
+            // ],
+            // SortOrder: "asc" || "desc",
+            };
+            const command = new client_secrets_manager_1.ListSecretsCommand(input);
+            // for await (const secretProperties of client.listPropertiesOfSecrets()) {
+            //   const secretName = secretProperties.name;
+            //   const secret = await client.getSecret(secretName);
+            //   const secretValue = secret.value;
+            //   envData.push(`${secretName}=${secretValue}`);
+            // }
             if (merge) {
                 const current = this.parseEnvFile(currentEnvPath);
                 const incoming = envData.map((data) => {

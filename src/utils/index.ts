@@ -1,6 +1,12 @@
 import { DefaultAzureCredential } from "@azure/identity";
+import {
+  SecretsManagerClient,
+  ListSecretsCommand,
+  ListSecretsCommandInput,
+} from "@aws-sdk/client-secrets-manager";
 import { SecretClient } from "@azure/keyvault-secrets";
 import fs from "fs";
+
 interface KeyObject {
   type: string;
 }
@@ -8,8 +14,11 @@ interface EnvObject {
   [key: string]: string;
 }
 const configMap: Record<string, KeyObject> = {
-  keyVaultUrl: {
-    type: "string",
+  azure: {
+    type: "object",
+  },
+  aws: {
+    type: "object",
   },
   currentEnvPath: {
     type: "string",
@@ -27,11 +36,10 @@ const configMap: Record<string, KeyObject> = {
 
 export class CloudKeysService {
   private configMap = configMap;
-  private jsonConfig: Record<string, string>;
-  constructor(jsonConfig) {
+  private jsonConfig;
+  constructor() {}
+  public validateConfig(jsonConfig): boolean {
     this.jsonConfig = jsonConfig;
-  }
-  public validateConfig(): boolean {
     for (const key in this.configMap) {
       if (this.configMap.hasOwnProperty(key)) {
         const expectedType = this.configMap[key].type;
@@ -39,7 +47,9 @@ export class CloudKeysService {
 
         if (typeof actualValue !== expectedType) {
           console.error(
-            `Validation failed for key: ${key}. Expected type: ${expectedType}, Actual value: ${actualValue}`
+            `Validation failed for key: ${key}. Expected type: ${expectedType}, Actual value: ${JSON.stringify(
+              actualValue
+            )} of type ${typeof actualValue}`
           );
           return false;
         }
@@ -47,21 +57,84 @@ export class CloudKeysService {
     }
     return true;
   }
-  public async generateEnv() {
+  public async generateAzureKeyvaultEnviormentVariables() {
     const envData: string[] = [];
-    const { keyVaultUrl, currentEnvPath, newEnvPath, createBackup, merge } =
+    const { azure, currentEnvPath, newEnvPath, createBackup, merge } =
       this.jsonConfig;
     if (createBackup) {
       this.createBackup(currentEnvPath);
     }
     const credential = new DefaultAzureCredential();
-    const client = new SecretClient(keyVaultUrl, credential);
+    const client = new SecretClient(azure.keyVaultUrl, credential);
     for await (const secretProperties of client.listPropertiesOfSecrets()) {
       const secretName = secretProperties.name;
       const secret = await client.getSecret(secretName);
       const secretValue = secret.value;
       envData.push(`${secretName}=${secretValue}`);
     }
+    if (merge) {
+      const current = this.parseEnvFile(currentEnvPath);
+      const incoming = envData.map((data) => {
+        const [key, value] = data.split("=");
+        if (key && value) {
+          const envObject: EnvObject = { [key]: value };
+          return envObject;
+        }
+      });
+      const newMergedEnv = this.mergeEnvArrays(current, incoming).map(
+        (value) => {
+          return `${Object.keys(value)[0]}=${Object.values(value)[0]}`;
+        }
+      );
+      fs.writeFileSync(newEnvPath, newMergedEnv.join("\n"));
+      console.log(`Secrets exported to ${newEnvPath} file.`);
+      return;
+    }
+    fs.writeFileSync(newEnvPath, envData.join("\n"));
+    console.log(`Secrets exported to ${newEnvPath} file.`);
+  }
+  public async generateAwsSecretsManagerEnviormentVariables() {
+    const envData: string[] = [];
+    const { aws, currentEnvPath, newEnvPath, createBackup, merge } =
+      this.jsonConfig;
+    if (createBackup) {
+      this.createBackup(currentEnvPath);
+    }
+
+    const client = new SecretsManagerClient({ region: aws.region });
+    const input: ListSecretsCommandInput = {
+      // // ListSecretsRequest
+      // IncludePlannedDeletion: true || false,
+      // MaxResults: Number("int"),
+      // NextToken: "STRING_VALUE",
+      // Filters: [
+      //   // FiltersListType
+      //   {
+      //     // Filter
+      //     Key:
+      //       "description" ||
+      //       "name" ||
+      //       "tag-key" ||
+      //       "tag-value" ||
+      //       "primary-region" ||
+      //       "owning-service" ||
+      //       "all",
+      //     Values: [
+      //       // FilterValuesStringList
+      //       "STRING_VALUE",
+      //     ],
+      //   },
+      // ],
+      // SortOrder: "asc" || "desc",
+    };
+    const command = new ListSecretsCommand(input);
+
+    // for await (const secretProperties of client.listPropertiesOfSecrets()) {
+    //   const secretName = secretProperties.name;
+    //   const secret = await client.getSecret(secretName);
+    //   const secretValue = secret.value;
+    //   envData.push(`${secretName}=${secretValue}`);
+    // }
     if (merge) {
       const current = this.parseEnvFile(currentEnvPath);
       const incoming = envData.map((data) => {
@@ -165,4 +238,22 @@ export class CloudKeysService {
 
     return mergedArray;
   }
+  public createConfigFile = () => {
+    const file = {
+      currentEnvPath: "./.env",
+      newEnvPath: "./env",
+      createBackup: true,
+      merge: true,
+      azure: {
+        keyVaultUrl: "https://KEYVAULT.vault.azure.net/",
+      },
+      aws: {
+        region: "REGION",
+      },
+    };
+    fs.appendFile("./cloudkeys-config.json", JSON.stringify(file), (err) => {
+      if (err) throw err;
+      console.log("Saved!");
+    });
+  };
 }
